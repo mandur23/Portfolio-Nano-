@@ -1,6 +1,5 @@
 import React from 'react';
-import { projects, wipProject, type Project } from '../data/projects';
-import { useEasterEggs } from '../context/EasterEggContext';
+import { projects, type Project } from '../data/projects';
 
 function ProjectCard({
   project,
@@ -75,9 +74,6 @@ function ProjectCard({
 }
 
 export default function Projects() {
-  const { wipUnlocked } = useEasterEggs();
-  const visibleProjects = wipUnlocked ? [...projects, wipProject] : projects;
-
   return (
     <section className="projects" id="projects">
       <div className="section-header">
@@ -88,13 +84,8 @@ export default function Projects() {
         </p>
       </div>
       <div className="projects__grid">
-        {visibleProjects.map((project, index) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            index={index}
-            isWip={project.id === wipProject.id}
-          />
+        {projects.map((project, index) => (
+          <ProjectCard key={project.id} project={project} index={index} />
         ))}
       </div>
     </section>

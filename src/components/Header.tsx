@@ -24,7 +24,7 @@ export default function Header() {
         <a
           href="#about"
           className="header__logo"
-          onClick={handleLogoClick}
+          onClick={(event) => handleLogoClick(event)}
         >
           <span className="header__logo-dot" />
           portfolio

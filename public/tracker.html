@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Beacon Monitor</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: #0a0a0f;
+        color: #f0f0f5;
+      }
+
+      #map {
+        width: 100%;
+        height: 100%;
+      }
+
+      .leaflet-popup-content-wrapper {
+        background: #13131a;
+        color: #f0f0f5;
+        border: 1px solid #1e1e2a;
+        border-radius: 12px;
+      }
+
+      .leaflet-popup-tip {
+        background: #13131a;
+      }
+
+      .leaflet-popup-content {
+        margin: 12px 14px;
+        min-width: 220px;
+      }
+
+      .beacon-popup h3 {
+        margin: 0 0 10px;
+        font-size: 0.95rem;
+        color: #60a5fa;
+      }
+
+      .beacon-popup dl {
+        margin: 0;
+        display: grid;
+        gap: 8px;
+      }
+
+      .beacon-popup div {
+        display: grid;
+        gap: 2px;
+      }
+
+      .beacon-popup dt {
+        font-size: 0.68rem;
+        color: #8b8b9e;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .beacon-popup dd {
+        margin: 0;
+        font-size: 0.85rem;
+        word-break: break-word;
+      }
+
+      .status-bar {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 1000;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(19, 19, 26, 0.92);
+        border: 1px solid #1e1e2a;
+        font-size: 0.8rem;
+        color: #8b8b9e;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="status" class="status-bar">연결 중…</div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script>
+      const statusEl = document.getElementById('status');
+      const markers = new Map();
+      let map = null;
+      let mapReady = false;
+
+      function initMap() {
+        map = L.map('map', { zoomControl: true }).setView([36.5, 127.9], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap',
+          maxZoom: 19,
+        }).addTo(map);
+        mapReady = true;
+      }
+
+      function formatTime(iso) {
+        try {
+          return new Date(iso).toLocaleString('ko-KR');
+        } catch {
+          return iso;
+        }
+      }
+
+      function popupHtml(beacon) {
+        return `
+          <div class="beacon-popup">
+            <h3>${beacon.device}</h3>
+            <dl>
+              <div><dt>OS</dt><dd>${beacon.os}</dd></div>
+              <div><dt>모델</dt><dd>${beacon.model ?? '—'}</dd></div>
+              <div><dt>제조사</dt><dd>${beacon.manufacturer ?? '—'}</dd></div>
+              <div><dt>앱 버전</dt><dd>${beacon.appVersion ?? '—'}</dd></div>
+              <div><dt>배터리</dt><dd>${beacon.battery != null ? beacon.battery + '%' : '—'}</dd></div>
+              <div><dt>정확도</dt><dd>${beacon.accuracy != null ? '±' + Math.round(beacon.accuracy) + 'm' : '—'}</dd></div>
+              <div><dt>좌표</dt><dd>${beacon.lat.toFixed(6)}, ${beacon.lng.toFixed(6)}</dd></div>
+              <div><dt>갱신</dt><dd>${formatTime(beacon.updatedAt)}</dd></div>
+            </dl>
+          </div>
+        `;
+      }
+
+      function upsertMarker(beacon) {
+        const latLng = [beacon.lat, beacon.lng];
+        const existing = markers.get(beacon.id);
+
+        if (existing) {
+          existing.setLatLng(latLng);
+          existing.setPopupContent(popupHtml(beacon));
+          return;
+        }
+
+        const marker = L.circleMarker(latLng, {
+          radius: 9,
+          fillColor: '#3b82f6',
+          color: '#fff',
+          weight: 2,
+          fillOpacity: 0.95,
+        })
+          .bindPopup(popupHtml(beacon))
+          .addTo(map);
+
+        marker.on('click', () => marker.openPopup());
+        markers.set(beacon.id, marker);
+      }
+
+      function removeStale(activeIds) {
+        for (const [id, marker] of markers.entries()) {
+          if (!activeIds.has(id)) {
+            map.removeLayer(marker);
+            markers.delete(id);
+          }
+        }
+      }
+
+      async function refresh() {
+        try {
+          const response = await fetch('/api/beacons');
+          const beacons = await response.json();
+
+          if (!Array.isArray(beacons)) throw new Error('Invalid response');
+
+          statusEl.textContent = `활성 기기 ${beacons.length}대 · ${new Date().toLocaleTimeString('ko-KR')}`;
+
+          if (beacons.length === 0) {
+            removeStale(new Set());
+            return;
+          }
+
+          const activeIds = new Set();
+          beacons.forEach((beacon) => {
+            activeIds.add(beacon.id);
+            upsertMarker(beacon);
+          });
+          removeStale(activeIds);
+
+          if (beacons.length === 1 && markers.size === 1) {
+            map.setView([beacons[0].lat, beacons[0].lng], 14);
+          }
+        } catch {
+          statusEl.textContent = '데이터를 불러오지 못했습니다';
+        }
+      }
+
+      initMap();
+      refresh();
+      setInterval(refresh, 5000);
+    </script>
+  </body>
+</html>

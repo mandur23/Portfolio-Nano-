@@ -525,12 +525,6 @@ main {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.easter-egg-toast--wip {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px dashed #64748b;
-}
-
 @keyframes toastIn {
   from {
     opacity: 0;

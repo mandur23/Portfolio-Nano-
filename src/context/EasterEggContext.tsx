@@ -24,80 +24,68 @@ const LOGO_CLICK_TARGET = 5;
 const LOGO_CLICK_WINDOW_MS = 2000;
 const TOAST_DURATION_MS = 3500;
 
-type ToastMessage = { id: number; text: string; variant: 'aris' | 'wip' } | null;
+type ToastMessage = { id: number; text: string } | null;
 
 interface EasterEggContextValue {
   arisMode: boolean;
-  wipUnlocked: boolean;
-  handleLogoClick: () => void;
+  handleLogoClick: (event: React.MouseEvent) => void;
 }
 
 const EasterEggContext = createContext<EasterEggContextValue | null>(null);
 
-function logConsoleHints() {
-  console.log(
-    '%c🔍 BeaconGuardian',
-    'color: #3b82f6; font-weight: bold; font-size: 14px;',
-    '개발자 도구를 연 당신, 환영합니다. (실제 모니터링은 아닙니다)'
-  );
-  console.log(
-    '%c힌트 1',
-    'color: #a855f7; font-weight: bold;',
-    '↑ ↑ ↓ ↓ ← → ← → B A — 무언가 바뀔지도?'
-  );
-  console.log(
-    '%c힌트 2',
-    'color: #f59e0b; font-weight: bold;',
-    '왼쪽 위 "portfolio" 로고를 5번 연속 클릭해 보세요'
-  );
-}
+const TRACKER_WINDOW =
+  'noopener,noreferrer,width=1100,height=720,menubar=no,toolbar=no,location=no,status=no';
 
 export function EasterEggProvider({ children }: { children: React.ReactNode }) {
   const [arisMode, setArisMode] = useState(false);
-  const [wipUnlocked, setWipUnlocked] = useState(false);
   const [toast, setToast] = useState<ToastMessage>(null);
 
   const konamiIndexRef = useRef(0);
   const logoClickCountRef = useRef(0);
   const logoClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trackerWindowRef = useRef<Window | null>(null);
 
-  const showToast = useCallback((text: string, variant: 'aris' | 'wip') => {
+  const showToast = useCallback((text: string) => {
     if (toastTimerRef.current) {
       clearTimeout(toastTimerRef.current);
     }
     const id = Date.now();
-    setToast({ id, text, variant });
+    setToast({ id, text });
     toastTimerRef.current = setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }, []);
 
-  const handleLogoClick = useCallback(() => {
-    if (logoClickTimerRef.current) {
-      clearTimeout(logoClickTimerRef.current);
-    }
-
-    logoClickCountRef.current += 1;
-
-    if (logoClickCountRef.current >= LOGO_CLICK_TARGET) {
-      logoClickCountRef.current = 0;
-      if (!wipUnlocked) {
-        setWipUnlocked(true);
-        showToast('비밀 프로젝트가 공개되었습니다 🚧', 'wip');
-        window.setTimeout(() => {
-          document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' });
-        }, 300);
-      }
+  const openTrackerWindow = useCallback(() => {
+    const url = `${window.location.origin}/tracker.html`;
+    if (trackerWindowRef.current && !trackerWindowRef.current.closed) {
+      trackerWindowRef.current.focus();
+      trackerWindowRef.current.location.href = url;
       return;
     }
-
-    logoClickTimerRef.current = setTimeout(() => {
-      logoClickCountRef.current = 0;
-    }, LOGO_CLICK_WINDOW_MS);
-  }, [showToast, wipUnlocked]);
-
-  useEffect(() => {
-    logConsoleHints();
+    trackerWindowRef.current = window.open(url, 'beaconTracker', TRACKER_WINDOW);
   }, []);
+
+  const handleLogoClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (logoClickTimerRef.current) {
+        clearTimeout(logoClickTimerRef.current);
+      }
+
+      logoClickCountRef.current += 1;
+
+      if (logoClickCountRef.current >= LOGO_CLICK_TARGET) {
+        logoClickCountRef.current = 0;
+        event.preventDefault();
+        openTrackerWindow();
+        return;
+      }
+
+      logoClickTimerRef.current = setTimeout(() => {
+        logoClickCountRef.current = 0;
+      }, LOGO_CLICK_WINDOW_MS);
+    },
+    [openTrackerWindow]
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -109,7 +97,7 @@ export function EasterEggProvider({ children }: { children: React.ReactNode }) {
         if (konamiIndexRef.current === KONAMI_SEQUENCE.length) {
           konamiIndexRef.current = 0;
           setArisMode(true);
-          showToast('안녕, 주인님 🎵', 'aris');
+          showToast('안녕, 주인님 🎵');
         }
         return;
       }
@@ -129,15 +117,10 @@ export function EasterEggProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <EasterEggContext.Provider value={{ arisMode, wipUnlocked, handleLogoClick }}>
+    <EasterEggContext.Provider value={{ arisMode, handleLogoClick }}>
       {children}
       {toast && (
-        <div
-          key={toast.id}
-          className={`easter-egg-toast easter-egg-toast--${toast.variant}`}
-          role="status"
-          aria-live="polite"
-        >
+        <div key={toast.id} className="easter-egg-toast easter-egg-toast--aris" role="status">
           {toast.text}
         </div>
       )}
