@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useEasterEggs } from '../context/EasterEggContext';
 
 const navItems = [
   { href: '#about', label: '소개' },
@@ -8,6 +9,7 @@ const navItems = [
 ];
 
 export default function Header() {
+  const { handleLogoClick } = useEasterEggs();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -19,7 +21,11 @@ export default function Header() {
   return (
     <header className={`header ${scrolled ? 'header--scrolled' : ''}`}>
       <div className="header__inner">
-        <a href="#about" className="header__logo">
+        <a
+          href="#about"
+          className="header__logo"
+          onClick={handleLogoClick}
+        >
           <span className="header__logo-dot" />
           portfolio
         </a>

@@ -4,8 +4,6 @@ import { profile } from '../data/projects';
 export default function Hero() {
   return (
     <section className="hero" id="about">
-      <div className="hero__glow hero__glow--1" />
-      <div className="hero__glow hero__glow--2" />
       <div className="hero__content">
         <p className="hero__eyebrow">Developer Portfolio</p>
         <h1 className="hero__title">

@@ -7,6 +7,8 @@
   --text: #f0f0f5;
   --text-muted: #8b8b9e;
   --accent: #6366f1;
+  --ambient-a: rgba(99, 102, 241, 0.09);
+  --ambient-b: rgba(236, 72, 153, 0.05);
 }
 
 *,
@@ -17,15 +19,22 @@
 
 html {
   scroll-behavior: smooth;
+  min-height: 100%;
+  background: var(--bg);
 }
 
 body {
   margin: 0;
+  min-height: 100%;
   font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg);
   color: var(--text);
+}
+
+#root {
+  min-height: 100vh;
 }
 
 code {

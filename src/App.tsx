@@ -4,11 +4,14 @@ import Hero from './components/Hero';
 import Projects from './components/Projects';
 import Skills from './components/Skills';
 import Footer from './components/Footer';
+import { EasterEggProvider, useEasterEggs } from './context/EasterEggContext';
 import './App.css';
 
-function App() {
+function AppContent() {
+  const { arisMode } = useEasterEggs();
+
   return (
-    <div className="app">
+    <div className={`app${arisMode ? ' app--aris' : ''}`}>
       <Header />
       <main>
         <Hero />
@@ -17,6 +20,14 @@ function App() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <EasterEggProvider>
+      <AppContent />
+    </EasterEggProvider>
   );
 }
 

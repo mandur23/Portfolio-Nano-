@@ -1,8 +1,24 @@
 /* ── Layout ── */
 .app {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
+}
+
+.app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% -15%, var(--ambient-a), transparent 72%),
+    radial-gradient(ellipse 55% 50% at 0% 45%, var(--ambient-b), transparent 68%),
+    radial-gradient(ellipse 55% 50% at 100% 55%, var(--ambient-a), transparent 68%),
+    radial-gradient(ellipse 90% 55% at 50% 110%, var(--ambient-b), transparent 72%),
+    var(--bg);
 }
 
 main {
@@ -76,34 +92,6 @@ main {
 .hero {
   position: relative;
   padding: 9rem 0 5rem;
-  overflow: hidden;
-}
-
-.hero__glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  pointer-events: none;
-}
-
-.hero__glow--1 {
-  width: 500px;
-  height: 500px;
-  background: rgba(99, 102, 241, 0.15);
-  top: -100px;
-  right: -100px;
-}
-
-.hero__glow--2 {
-  width: 400px;
-  height: 400px;
-  background: rgba(236, 72, 153, 0.1);
-  bottom: 0;
-  left: -100px;
-}
-
-.hero__content {
-  position: relative;
 }
 
 .hero__eyebrow {
@@ -446,6 +434,100 @@ main {
   font-size: 0.8rem;
   color: var(--text-muted);
   margin: 0;
+}
+
+/* ── Aris mode (Konami Code) ── */
+.app--aris {
+  --accent: #a855f7;
+  --ambient-a: rgba(168, 85, 247, 0.11);
+  --ambient-b: rgba(192, 132, 252, 0.07);
+}
+
+.app--aris .hero__name {
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app--aris .btn--primary {
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
+}
+
+.app--aris .btn--primary:hover {
+  box-shadow: 0 6px 28px rgba(168, 85, 247, 0.55);
+}
+
+.app--aris .header__logo-dot {
+  box-shadow: 0 0 12px #a855f7;
+}
+
+/* ── WIP project card ── */
+.project-card--wip {
+  border-style: dashed;
+  opacity: 0;
+  animation: wipReveal 0.8s ease forwards;
+}
+
+.project-card__wip-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+  border: 1px dashed #64748b;
+}
+
+@keyframes wipReveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Easter egg toast ── */
+.easter-egg-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 0.85rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  animation: toastIn 0.35s ease;
+  pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.easter-egg-toast--aris {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.easter-egg-toast--wip {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px dashed #64748b;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* ── Animations ── */

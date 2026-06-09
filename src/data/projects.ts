@@ -97,6 +97,22 @@ export const projects: Project[] = [
   },
 ];
 
+export const wipProject: Project = {
+  id: 'wip-mystery',
+  title: '??? (WIP)',
+  subtitle: '아직 커밋 안 함',
+  description:
+    '로컬에만 있는 비밀 프로젝트입니다. README는 TODO, 테스트는 없고, somehow 돌아갑니다.',
+  tags: ['???', 'TODO', 'Works on my machine'],
+  highlights: [
+    'git push --force 고민 중',
+    '변수명 temp_final_v2_real',
+    '주석: 나중에 고치기 (2023)',
+  ],
+  icon: '🚧',
+  accent: '#64748b',
+};
+
 export const skills = [
   'Python',
   'React / TypeScript',
