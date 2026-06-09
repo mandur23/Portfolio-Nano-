@@ -1,6 +1,6 @@
 {
-  "versionCode": 3,
-  "versionName": "1.1.3",
+  "versionCode": 4,
+  "versionName": "1.1.4",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "인앱 업데이트 추가 (자동/수동 확인, APK 다운로드 및 설치)"
+  "releaseNotes": "인앱 업데이트 URL 수정 (version.json 정상 조회)"
 }
