@@ -23,6 +23,7 @@ const KONAMI_SEQUENCE = [
 const LOGO_CLICK_TARGET = 5;
 const LOGO_CLICK_WINDOW_MS = 4000;
 const TOAST_DURATION_MS = 3500;
+const TRACKER_WINDOW_NAME = 'beaconTracker';
 
 type ToastMessage = { id: number; text: string } | null;
 
@@ -34,10 +35,24 @@ interface EasterEggContextValue {
 const EasterEggContext = createContext<EasterEggContextValue | null>(null);
 
 function openTrackerPage() {
-  const url = `${window.location.origin}/tracker.html`;
-  const popup = window.open(url, '_blank', 'noopener,noreferrer');
+  const url = `${window.location.origin}/tracker.html?t=${Date.now()}`;
+  const existing = window.open('', TRACKER_WINDOW_NAME);
+
+  if (existing && !existing.closed) {
+    try {
+      existing.location.href = url;
+      existing.focus();
+      return;
+    } catch {
+      // cross-origin or blocked — fall through to new window
+    }
+  }
+
+  const popup = window.open(url, TRACKER_WINDOW_NAME);
   if (!popup) {
     window.location.assign(url);
+  } else {
+    popup.focus();
   }
 }
 

@@ -102,15 +102,45 @@
       const statusEl = document.getElementById('status');
       const markers = new Map();
       let map = null;
-      let mapReady = false;
+      let refreshTimer = null;
+      let initialViewSet = false;
+      let userInteracted = false;
+
+      function invalidateMapSize() {
+        if (!map) return;
+        map.invalidateSize({ animate: false });
+      }
+
+      function destroyMap() {
+        if (refreshTimer) {
+          clearInterval(refreshTimer);
+          refreshTimer = null;
+        }
+        if (map) {
+          map.remove();
+          map = null;
+        }
+        markers.clear();
+        initialViewSet = false;
+        userInteracted = false;
+      }
 
       function initMap() {
+        const container = document.getElementById('map');
+        if (container) container.innerHTML = '';
+
         map = L.map('map', { zoomControl: true }).setView([36.5, 127.9], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap',
           maxZoom: 19,
         }).addTo(map);
-        mapReady = true;
+
+        map.on('zoomstart', () => {
+          userInteracted = true;
+        });
+        map.on('dragstart', () => {
+          userInteracted = true;
+        });
       }
 
       function formatTime(iso) {
@@ -172,6 +202,18 @@
         }
       }
 
+      function fitInitialView(beacons) {
+        if (initialViewSet || userInteracted || beacons.length === 0) return;
+
+        if (beacons.length === 1) {
+          map.setView([beacons[0].lat, beacons[0].lng], 14);
+        } else {
+          const group = L.featureGroup(Array.from(markers.values()));
+          map.fitBounds(group.getBounds().pad(0.15));
+        }
+        initialViewSet = true;
+      }
+
       async function refresh() {
         try {
           const response = await fetch('/api/beacons');
@@ -192,18 +234,39 @@
             upsertMarker(beacon);
           });
           removeStale(activeIds);
-
-          if (beacons.length === 1 && markers.size === 1) {
-            map.setView([beacons[0].lat, beacons[0].lng], 14);
-          }
+          fitInitialView(beacons);
         } catch {
           statusEl.textContent = '데이터를 불러오지 못했습니다';
         }
       }
 
-      initMap();
-      refresh();
-      setInterval(refresh, 5000);
+      function startTracker() {
+        destroyMap();
+        initMap();
+        statusEl.textContent = '연결 중…';
+        refresh();
+        refreshTimer = setInterval(refresh, 5000);
+        requestAnimationFrame(invalidateMapSize);
+        setTimeout(invalidateMapSize, 150);
+      }
+
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          startTracker();
+        }
+      });
+
+      window.addEventListener('focus', () => {
+        invalidateMapSize();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          invalidateMapSize();
+        }
+      });
+
+      startTracker();
     </script>
   </body>
 </html>
