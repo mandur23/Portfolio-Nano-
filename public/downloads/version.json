@@ -1,6 +1,6 @@
 {
-  "versionCode": 4,
-  "versionName": "1.1.4",
+  "versionCode": 5,
+  "versionName": "1.1.5",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "인앱 업데이트 URL 수정 (version.json 정상 조회)"
+  "releaseNotes": "크로스페이드 전환 시 앱 종료 문제 수정"
 }
