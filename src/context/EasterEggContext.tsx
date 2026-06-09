@@ -21,7 +21,7 @@ const KONAMI_SEQUENCE = [
 ] as const;
 
 const LOGO_CLICK_TARGET = 5;
-const LOGO_CLICK_WINDOW_MS = 2000;
+const LOGO_CLICK_WINDOW_MS = 4000;
 const TOAST_DURATION_MS = 3500;
 
 type ToastMessage = { id: number; text: string } | null;
@@ -33,8 +33,13 @@ interface EasterEggContextValue {
 
 const EasterEggContext = createContext<EasterEggContextValue | null>(null);
 
-const TRACKER_WINDOW =
-  'noopener,noreferrer,width=1100,height=720,menubar=no,toolbar=no,location=no,status=no';
+function openTrackerPage() {
+  const url = `${window.location.origin}/tracker.html`;
+  const popup = window.open(url, '_blank', 'noopener,noreferrer');
+  if (!popup) {
+    window.location.assign(url);
+  }
+}
 
 export function EasterEggProvider({ children }: { children: React.ReactNode }) {
   const [arisMode, setArisMode] = useState(false);
@@ -44,7 +49,6 @@ export function EasterEggProvider({ children }: { children: React.ReactNode }) {
   const logoClickCountRef = useRef(0);
   const logoClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const trackerWindowRef = useRef<Window | null>(null);
 
   const showToast = useCallback((text: string) => {
     if (toastTimerRef.current) {
@@ -55,37 +59,24 @@ export function EasterEggProvider({ children }: { children: React.ReactNode }) {
     toastTimerRef.current = setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }, []);
 
-  const openTrackerWindow = useCallback(() => {
-    const url = `${window.location.origin}/tracker.html`;
-    if (trackerWindowRef.current && !trackerWindowRef.current.closed) {
-      trackerWindowRef.current.focus();
-      trackerWindowRef.current.location.href = url;
+  const handleLogoClick = useCallback((event: React.MouseEvent) => {
+    if (logoClickTimerRef.current) {
+      clearTimeout(logoClickTimerRef.current);
+    }
+
+    logoClickCountRef.current += 1;
+
+    if (logoClickCountRef.current >= LOGO_CLICK_TARGET) {
+      logoClickCountRef.current = 0;
+      event.preventDefault();
+      openTrackerPage();
       return;
     }
-    trackerWindowRef.current = window.open(url, 'beaconTracker', TRACKER_WINDOW);
+
+    logoClickTimerRef.current = setTimeout(() => {
+      logoClickCountRef.current = 0;
+    }, LOGO_CLICK_WINDOW_MS);
   }, []);
-
-  const handleLogoClick = useCallback(
-    (event: React.MouseEvent) => {
-      if (logoClickTimerRef.current) {
-        clearTimeout(logoClickTimerRef.current);
-      }
-
-      logoClickCountRef.current += 1;
-
-      if (logoClickCountRef.current >= LOGO_CLICK_TARGET) {
-        logoClickCountRef.current = 0;
-        event.preventDefault();
-        openTrackerWindow();
-        return;
-      }
-
-      logoClickTimerRef.current = setTimeout(() => {
-        logoClickCountRef.current = 0;
-      }, LOGO_CLICK_WINDOW_MS);
-    },
-    [openTrackerWindow]
-  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
