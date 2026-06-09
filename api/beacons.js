@@ -16,6 +16,17 @@ function cors(res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
+function parseRequestBody(req) {
+  if (req.body == null) return null;
+  if (typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 function pushEvent(event) {
   eventLog.unshift(event);
   while (eventLog.length > MAX_EVENTS) eventLog.pop();
@@ -86,7 +97,13 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const exit = validateExit(req.body);
+      const body = parseRequestBody(req);
+      if (!body) {
+        res.status(400).json({ error: 'Invalid JSON' });
+        return;
+      }
+
+      const exit = validateExit(body);
       if (exit) {
         memoryStore.delete(exit.id);
         pushEvent({
@@ -100,7 +117,7 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      const beacon = validateBeacon(req.body);
+      const beacon = validateBeacon(body);
       if (!beacon) {
         res.status(400).json({ error: 'Invalid beacon payload' });
         return;

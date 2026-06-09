@@ -101,12 +101,70 @@
         color: #fecaca;
         max-width: min(360px, calc(100vw - 24px));
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        animation: toastIn 0.25s ease;
+      }
+
+      .event-log {
+        position: fixed;
+        bottom: 12px;
+        left: 12px;
+        z-index: 1000;
+        width: min(320px, calc(100vw - 24px));
+        max-height: 160px;
+        overflow-y: auto;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(19, 19, 26, 0.92);
+        border: 1px solid #1e1e2a;
+        font-size: 0.75rem;
+        color: #8b8b9e;
+      }
+
+      .event-log__title {
+        margin: 0 0 8px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #64748b;
+      }
+
+      .event-log__item {
+        padding: 6px 0;
+        border-top: 1px solid #1e1e2a;
+        color: #fca5a5;
+        line-height: 1.45;
+      }
+
+      .event-log__item:first-of-type {
+        border-top: none;
+        padding-top: 0;
+      }
+
+      .event-log__empty {
+        margin: 0;
+        color: #64748b;
+      }
+
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
     </style>
   </head>
   <body>
     <div id="map"></div>
     <div id="status" class="status-bar">연결 중…</div>
+    <aside id="event-log" class="event-log" hidden>
+      <p class="event-log__title">종료 이벤트</p>
+      <div id="event-log-list"></div>
+    </aside>
 
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -115,13 +173,17 @@
     ></script>
     <script>
       const statusEl = document.getElementById('status');
+      const eventLogEl = document.getElementById('event-log');
+      const eventLogListEl = document.getElementById('event-log-list');
       const markers = new Map();
       let map = null;
       let refreshTimer = null;
       let initialViewSet = false;
       let userInteracted = false;
+      let firstRefresh = true;
       const seenEvents = new Set();
       let exitToastTimer = null;
+      let exitToastEl = null;
 
       function invalidateMapSize() {
         if (!map) return;
@@ -168,6 +230,10 @@
         }
       }
 
+      function eventKey(event) {
+        return `${event.id}:${event.at}`;
+      }
+
       function popupHtml(beacon) {
         return `
           <div class="beacon-popup">
@@ -184,6 +250,13 @@
             </dl>
           </div>
         `;
+      }
+
+      function removeMarkerById(id) {
+        const marker = markers.get(id);
+        if (!marker || !map) return;
+        map.removeLayer(marker);
+        markers.delete(id);
       }
 
       function upsertMarker(beacon) {
@@ -232,20 +305,54 @@
       }
 
       function showExitToast(event) {
-        const key = `${event.id}:${event.at}`;
+        const key = eventKey(event);
         if (seenEvents.has(key)) return;
         seenEvents.add(key);
 
         const label = event.device || event.id;
-        const toast = document.createElement('div');
-        toast.className = 'exit-toast';
-        toast.textContent = `${label} — ${event.message || '앱 종료'} (${formatTime(event.at)})`;
-        document.body.appendChild(toast);
+        if (exitToastEl) exitToastEl.remove();
+        exitToastEl = document.createElement('div');
+        exitToastEl.className = 'exit-toast';
+        exitToastEl.textContent = `${label} — ${event.message || '앱 종료'}`;
+        document.body.appendChild(exitToastEl);
 
         if (exitToastTimer) clearTimeout(exitToastTimer);
         exitToastTimer = setTimeout(() => {
-          toast.remove();
-        }, 8000);
+          exitToastEl?.remove();
+          exitToastEl = null;
+        }, 6000);
+      }
+
+      function renderEventLog(exitEvents) {
+        if (exitEvents.length === 0) {
+          eventLogEl.hidden = true;
+          eventLogListEl.innerHTML = '';
+          return;
+        }
+
+        eventLogEl.hidden = false;
+        eventLogListEl.innerHTML = exitEvents
+          .slice(0, 8)
+          .map(
+            (event) =>
+              `<div class="event-log__item">${event.device || event.id} · ${formatTime(event.at)}</div>`
+          )
+          .join('');
+      }
+
+      function handleExitEvents(events, notify) {
+        const exitEvents = events.filter((event) => event.type === 'exit');
+        renderEventLog(exitEvents);
+
+        if (!notify) {
+          exitEvents.forEach((event) => seenEvents.add(eventKey(event)));
+          return;
+        }
+
+        exitEvents.forEach((event) => {
+          showExitToast(event);
+          removeMarkerById(event.id);
+        });
       }
 
       function parseBeaconResponse(data) {
@@ -263,19 +370,17 @@
 
       async function refresh() {
         try {
-          const response = await fetch('/api/beacons');
+          const response = await fetch('/api/beacons', { cache: 'no-store' });
           const { beacons, events } = parseBeaconResponse(await response.json());
+          const notify = !firstRefresh;
+          if (firstRefresh) firstRefresh = false;
 
-          events
-            .filter((event) => event.type === 'exit')
-            .forEach((event) => showExitToast(event));
+          handleExitEvents(events, notify);
 
-          statusEl.textContent = `활성 기기 ${beacons.length}대 · ${new Date().toLocaleTimeString('ko-KR')}`;
-
-          if (beacons.length === 0) {
-            removeStale(new Set());
-            return;
-          }
+          const exitCount = events.filter((event) => event.type === 'exit').length;
+          statusEl.textContent = `활성 ${beacons.length}대${
+            exitCount > 0 ? ` · 종료 ${exitCount}건` : ''
+          } · ${new Date().toLocaleTimeString('ko-KR')}`;
 
           const activeIds = new Set();
           beacons.forEach((beacon) => {
@@ -291,6 +396,12 @@
 
       function startTracker() {
         destroyMap();
+        seenEvents.clear();
+        firstRefresh = true;
+        if (exitToastEl) {
+          exitToastEl.remove();
+          exitToastEl = null;
+        }
         initMap();
         statusEl.textContent = '연결 중…';
         refresh();
@@ -312,6 +423,7 @@
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           invalidateMapSize();
+          refresh();
         }
       });
 
