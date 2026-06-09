@@ -87,6 +87,21 @@
         font-size: 0.8rem;
         color: #8b8b9e;
       }
+
+      .exit-toast {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 1001;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(127, 29, 29, 0.94);
+        border: 1px solid #ef4444;
+        font-size: 0.82rem;
+        color: #fecaca;
+        max-width: min(360px, calc(100vw - 24px));
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      }
     </style>
   </head>
   <body>
@@ -105,6 +120,8 @@
       let refreshTimer = null;
       let initialViewSet = false;
       let userInteracted = false;
+      const seenEvents = new Set();
+      let exitToastTimer = null;
 
       function invalidateMapSize() {
         if (!map) return;
@@ -214,12 +231,44 @@
         initialViewSet = true;
       }
 
+      function showExitToast(event) {
+        const key = `${event.id}:${event.at}`;
+        if (seenEvents.has(key)) return;
+        seenEvents.add(key);
+
+        const label = event.device || event.id;
+        const toast = document.createElement('div');
+        toast.className = 'exit-toast';
+        toast.textContent = `${label} — ${event.message || '앱 종료'} (${formatTime(event.at)})`;
+        document.body.appendChild(toast);
+
+        if (exitToastTimer) clearTimeout(exitToastTimer);
+        exitToastTimer = setTimeout(() => {
+          toast.remove();
+        }, 8000);
+      }
+
+      function parseBeaconResponse(data) {
+        if (Array.isArray(data)) {
+          return { beacons: data, events: [] };
+        }
+        if (data && Array.isArray(data.beacons)) {
+          return {
+            beacons: data.beacons,
+            events: Array.isArray(data.events) ? data.events : [],
+          };
+        }
+        throw new Error('Invalid response');
+      }
+
       async function refresh() {
         try {
           const response = await fetch('/api/beacons');
-          const beacons = await response.json();
+          const { beacons, events } = parseBeaconResponse(await response.json());
 
-          if (!Array.isArray(beacons)) throw new Error('Invalid response');
+          events
+            .filter((event) => event.type === 'exit')
+            .forEach((event) => showExitToast(event));
 
           statusEl.textContent = `활성 기기 ${beacons.length}대 · ${new Date().toLocaleTimeString('ko-KR')}`;
 

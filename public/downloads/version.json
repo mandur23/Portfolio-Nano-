@@ -1,6 +1,6 @@
 {
-  "versionCode": 7,
-  "versionName": "1.1.7",
+  "versionCode": 8,
+  "versionName": "1.1.8",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "Beacon API URL을 portfolio-nano-smoky 도메인으로 수정"
+  "releaseNotes": "앱 종료 시 Beacon 알림, 위치 권한 문구 정리"
 }

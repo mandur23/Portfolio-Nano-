@@ -1,13 +1,29 @@
 const BEACON_TTL_MS = 24 * 60 * 60 * 1000;
+const EVENT_TTL_MS = 10 * 60 * 1000;
+const MAX_EVENTS = 30;
 
 /** @type {Map<string, object>} */
 const memoryStore = global.__beaconMemoryStore || new Map();
 global.__beaconMemoryStore = memoryStore;
 
+/** @type {object[]} */
+const eventLog = global.__beaconEventLog || [];
+global.__beaconEventLog = eventLog;
+
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+function pushEvent(event) {
+  eventLog.unshift(event);
+  while (eventLog.length > MAX_EVENTS) eventLog.pop();
+}
+
+function listRecentEvents() {
+  const now = Date.now();
+  return eventLog.filter((event) => now - new Date(event.at).getTime() < EVENT_TTL_MS);
 }
 
 function validateBeacon(body) {
@@ -33,6 +49,16 @@ function validateBeacon(body) {
   };
 }
 
+function validateExit(body) {
+  if (!body || typeof body !== 'object' || body.event !== 'exit') return null;
+  const id = typeof body.id === 'string' ? body.id.trim() : '';
+  if (!id) return null;
+  return {
+    id,
+    device: String(body.device ?? 'Unknown'),
+  };
+}
+
 function listActiveBeacons() {
   const now = Date.now();
   for (const [id, beacon] of memoryStore.entries()) {
@@ -52,11 +78,28 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      res.status(200).json(listActiveBeacons());
+      res.status(200).json({
+        beacons: listActiveBeacons(),
+        events: listRecentEvents(),
+      });
       return;
     }
 
     if (req.method === 'POST') {
+      const exit = validateExit(req.body);
+      if (exit) {
+        memoryStore.delete(exit.id);
+        pushEvent({
+          type: 'exit',
+          id: exit.id,
+          device: exit.device,
+          message: '앱 종료',
+          at: new Date().toISOString(),
+        });
+        res.status(200).json({ ok: true, event: 'exit' });
+        return;
+      }
+
       const beacon = validateBeacon(req.body);
       if (!beacon) {
         res.status(400).json({ error: 'Invalid beacon payload' });
