@@ -84,8 +84,7 @@ export default function Projects() {
         <p className="section-eyebrow">Works</p>
         <h2 className="section-title">프로젝트</h2>
         <p className="section-desc">
-          지금까지 개발한 주요 프로젝트입니다. ↗ GitHub · ⬇ 앱 다운로드 링크를
-          이용할 수 있습니다.
+          지금까지 개발한 주요 프로젝트입니다. ↗ GitHub · ⬇ 앱 다운로드 링크를 이용할 수 있습니다.
         </p>
       </div>
       <div className="projects__grid">

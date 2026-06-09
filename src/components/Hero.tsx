@@ -28,7 +28,7 @@ export default function Hero() {
         </div>
         <div className="hero__stats">
           <div className="hero__stat">
-            <span className="hero__stat-num">5+</span>
+            <span className="hero__stat-num">6+</span>
             <span className="hero__stat-label">프로젝트</span>
           </div>
           <div className="hero__stat">
