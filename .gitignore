@@ -21,3 +21,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# APK는 GitHub Releases로 배포 (100MB Git 제한)
+public/downloads/*.apk

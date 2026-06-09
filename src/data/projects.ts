@@ -5,12 +5,35 @@ export interface Project {
   description: string;
   tags: string[];
   github?: string;
+  /** APK 등 앱 다운로드 경로 (public/ 기준) */
+  download?: string;
+  downloadLabel?: string;
   highlights: string[];
   icon: string;
   accent: string;
 }
 
 export const projects: Project[] = [
+  {
+    id: 'melody-breeze',
+    title: 'Remix: Melody Breeze',
+    subtitle: 'Android 로컬 음악 플레이어',
+    description:
+      'YouTube에서 곡을 받아 오프라인으로 재생하는 Android 음악 앱입니다. 플레이리스트, 이퀄라이저, 뮤직비디오(MP4), 수면 타이머, 홈 화면 위젯을 지원합니다.',
+    tags: ['Android', 'Kotlin', 'Jetpack Compose', 'Room', 'ExoPlayer', 'yt-dlp'],
+    github: 'https://github.com/mandur23/-_-',
+    download:
+      'https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk',
+    downloadLabel: 'APK 다운로드',
+    highlights: [
+      'YouTube 다운로드 · MP3 / MP4(뮤직비디오) 저장',
+      '백그라운드 재생, 알림·위젯·Android Auto',
+      '이퀄라이저, 크로스페이드, 가사, 수면 타이머',
+      '스마트 플레이리스트 · 아티스트별 재생 큐',
+    ],
+    icon: '🎧',
+    accent: '#6366f1',
+  },
   {
     id: 'beacon-guardian',
     title: 'BeaconGuardian',
@@ -115,6 +138,7 @@ export const wipProject: Project = {
 
 export const skills = [
   'Python',
+  'Android / Kotlin',
   'React / TypeScript',
   'Discord Bot Development',
   'Computer Vision & Deep Learning',

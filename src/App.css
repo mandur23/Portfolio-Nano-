@@ -268,7 +268,14 @@ main {
   line-height: 1;
 }
 
-.project-card__github {
+.project-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.project-card__github,
+.project-card__download {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -282,9 +289,14 @@ main {
   transition: color 0.2s, background 0.2s;
 }
 
-.project-card__github:hover {
+.project-card__github:hover,
+.project-card__download:hover {
   color: var(--accent);
   background: rgba(99, 102, 241, 0.1);
+}
+
+.project-card__download {
+  font-size: 0.95rem;
 }
 
 .project-card__title {

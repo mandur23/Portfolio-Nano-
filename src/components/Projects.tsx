@@ -27,17 +27,32 @@ function ProjectCard({
         {isWip ? (
           <span className="project-card__wip-badge">WIP</span>
         ) : (
-          project.github && (
-            <a
-              href={project.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="project-card__github"
-              aria-label={`${project.title} GitHub`}
-            >
-              ↗
-            </a>
-          )
+          <div className="project-card__actions">
+            {project.download && (
+              <a
+                href={project.download}
+                {...(project.download.startsWith('http')
+                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                  : { download: true })}
+                className="project-card__download"
+                aria-label={`${project.title} ${project.downloadLabel ?? '다운로드'}`}
+                title={project.downloadLabel ?? '다운로드'}
+              >
+                ⬇
+              </a>
+            )}
+            {project.github && (
+              <a
+                href={project.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="project-card__github"
+                aria-label={`${project.title} GitHub`}
+              >
+                ↗
+              </a>
+            )}
+          </div>
         )}
       </div>
       <h3 className="project-card__title">{project.title}</h3>
@@ -69,8 +84,8 @@ export default function Projects() {
         <p className="section-eyebrow">Works</p>
         <h2 className="section-title">프로젝트</h2>
         <p className="section-desc">
-          지금까지 개발한 주요 프로젝트입니다. 각 카드를 클릭하면 GitHub 저장소로
-          이동합니다.
+          지금까지 개발한 주요 프로젝트입니다. ↗ GitHub · ⬇ 앱 다운로드 링크를
+          이용할 수 있습니다.
         </p>
       </div>
       <div className="projects__grid">
