@@ -1,6 +1,6 @@
 {
-  "versionCode": 5,
-  "versionName": "1.1.5",
+  "versionCode": 6,
+  "versionName": "1.1.6",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "크로스페이드 전환 시 앱 종료 문제 수정"
+  "releaseNotes": "Beacon 위치·기종 통계 전송 및 설정 권한 UI 추가"
 }
