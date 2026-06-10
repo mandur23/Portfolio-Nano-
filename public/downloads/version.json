@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
-  "versionName": "1.2.1",
+  "versionCode": 12,
+  "versionName": "1.2.2",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "가사 편집 키보드 표시 시 글자 안 보이던 문제 수정"
+  "releaseNotes": "가사 수정 타임스탬프 전체 표시, 상단바·재생바 UI 축소"
 }
