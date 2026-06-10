@@ -1,6 +1,6 @@
 {
-  "versionCode": 8,
-  "versionName": "1.1.8",
+  "versionCode": 9,
+  "versionName": "1.1.9",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "앱 종료 시 Beacon 알림, 위치 권한 문구 정리"
+  "releaseNotes": "YouTube 자막 가사, STT 폴백, 자막 중복 제거"
 }
