@@ -1,6 +1,6 @@
 {
-  "versionCode": 9,
-  "versionName": "1.1.9",
+  "versionCode": 10,
+  "versionName": "1.2.0",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "YouTube 자막 가사, STT 폴백, 자막 중복 제거"
+  "releaseNotes": "가사 줄 편집·타임스탬프 싱크, 편집 화면 재생바, YouTube 자막 전용(로컬 STT 제거)"
 }
