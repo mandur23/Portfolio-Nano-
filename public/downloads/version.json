@@ -1,6 +1,6 @@
 {
-  "versionCode": 13,
-  "versionName": "1.2.3",
+  "versionCode": 14,
+  "versionName": "1.2.4",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "가사 수정 키보드 레이어 분리 — 상단바 고정, 하단 네비 숨김"
+  "releaseNotes": "가사 중앙 정렬 수정, 미니플레이어·곡 목록 UI 개선"
 }
