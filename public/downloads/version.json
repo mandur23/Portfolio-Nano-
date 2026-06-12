@@ -1,6 +1,6 @@
 {
-  "versionCode": 15,
-  "versionName": "1.2.5",
+  "versionCode": 16,
+  "versionName": "1.2.6",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "가사 싱크 중앙 정렬 수정 (Column 스크롤 방식)"
+  "releaseNotes": "햅틱·음질·가사 오프셋, 앨범 다이내믹 배경, 큐 DnD, 공유 전환, 위젯 가사/다음곡·아티스트 UI"
 }
