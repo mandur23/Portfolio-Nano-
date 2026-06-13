@@ -1,6 +1,6 @@
 {
-  "versionCode": 17,
-  "versionName": "1.2.7",
+  "versionCode": 18,
+  "versionName": "1.2.8",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "성능 최적화, 곡 전환·시크 UI 안정화, CD 사다리꼴 비주얼라이저·FFT 설정"
+  "releaseNotes": "최초 실행 이용약관·주의사항 동의 화면, 설정에서 약관 다시 보기"
 }
