@@ -1,6 +1,6 @@
 {
-  "versionCode": 18,
-  "versionName": "1.2.8",
+  "versionCode": 19,
+  "versionName": "1.2.9",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "최초 실행 이용약관·주의사항 동의 화면, 설정에서 약관 다시 보기"
+  "releaseNotes": "Assistant 음성 검색 재생, 네트워크·다운로드·정리 최적화, minSdk 26"
 }
