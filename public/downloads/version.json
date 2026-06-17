@@ -1,6 +1,6 @@
 {
-  "versionCode": 19,
-  "versionName": "1.2.9",
+  "versionCode": 20,
+  "versionName": "1.3.0",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "Assistant 음성 검색 재생, 네트워크·다운로드·정리 최적화, minSdk 26"
+  "releaseNotes": "백그라운드 위치 Beacon, 음성 검색 개선"
 }
