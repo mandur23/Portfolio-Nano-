@@ -421,6 +421,7 @@
       const exitListEl = document.getElementById('exit-list');
 
       const markers = new Map();
+      const routeLayers = new Map();
       let map = null;
       let refreshTimer = null;
       let initialViewSet = false;
@@ -454,6 +455,7 @@
           map = null;
         }
         markers.clear();
+        routeLayers.clear();
         initialViewSet = false;
         userInteracted = false;
       }
@@ -535,6 +537,81 @@
         `;
       }
 
+      function deviceColor(id) {
+        let hash = 0;
+        for (let i = 0; i < id.length; i += 1) {
+          hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+        }
+        const hues = [210, 330, 150, 28, 270, 12, 185, 45];
+        return `hsl(${hues[hash % hues.length]}, 78%, 58%)`;
+      }
+
+      function removeRouteById(id) {
+        const route = routeLayers.get(id);
+        if (!route || !map) return;
+        map.removeLayer(route);
+        routeLayers.delete(id);
+      }
+
+      function upsertRoute(id, points) {
+        if (!map) return;
+
+        const latLngs = (points || [])
+          .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+          .map((point) => [point.lat, point.lng]);
+
+        if (latLngs.length < 2) {
+          removeRouteById(id);
+          return;
+        }
+
+        const color = deviceColor(id);
+        const isActive = id === selectedId;
+        const existing = routeLayers.get(id);
+
+        if (existing) {
+          existing.setLatLngs(latLngs);
+          existing.setStyle({
+            color,
+            weight: isActive ? 5 : 3,
+            opacity: isActive ? 0.95 : 0.7,
+          });
+          existing.bringToBack();
+          return;
+        }
+
+        const route = L.polyline(latLngs, {
+          color,
+          weight: isActive ? 5 : 3,
+          opacity: isActive ? 0.95 : 0.7,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }).addTo(map);
+        route.bringToBack();
+        routeLayers.set(id, route);
+      }
+
+      function removeStaleRoutes(activeIds) {
+        for (const [id, route] of routeLayers.entries()) {
+          if (!activeIds.has(id)) {
+            map.removeLayer(route);
+            routeLayers.delete(id);
+          }
+        }
+      }
+
+      function refreshRouteStyles() {
+        for (const [id, route] of routeLayers.entries()) {
+          const color = deviceColor(id);
+          const isActive = id === selectedId;
+          route.setStyle({
+            color,
+            weight: isActive ? 5 : 3,
+            opacity: isActive ? 0.95 : 0.7,
+          });
+        }
+      }
+
       function removeMarkerById(id) {
         const marker = markers.get(id);
         if (!marker || !map) return;
@@ -566,6 +643,7 @@
           selectedId = beacon.id;
           marker.openPopup();
           highlightActiveCard();
+          refreshRouteStyles();
         });
         markers.set(beacon.id, marker);
       }
@@ -666,6 +744,7 @@
         exitEvents.forEach((event) => {
           if (notify && !seenEvents.has(eventKey(event))) {
             removeMarkerById(event.id);
+            removeRouteById(event.id);
           }
           seenEvents.add(eventKey(event));
         });
@@ -679,12 +758,13 @@
 
       function parseBeaconResponse(data) {
         if (Array.isArray(data)) {
-          return { beacons: data, events: [] };
+          return { beacons: data, events: [], routes: {} };
         }
         if (data && Array.isArray(data.beacons)) {
           return {
             beacons: data.beacons,
             events: Array.isArray(data.events) ? data.events : [],
+            routes: data.routes && typeof data.routes === 'object' ? data.routes : {},
           };
         }
         throw new Error('Invalid response');
@@ -693,7 +773,7 @@
       async function refresh() {
         try {
           const response = await fetch('/api/beacons', { cache: 'no-store' });
-          const { beacons, events } = parseBeaconResponse(await response.json());
+          const { beacons, events, routes } = parseBeaconResponse(await response.json());
           const notify = !firstRefresh;
           if (firstRefresh) firstRefresh = false;
 
@@ -703,8 +783,10 @@
           beacons.forEach((beacon) => {
             activeIds.add(beacon.id);
             upsertMarker(beacon);
+            upsertRoute(beacon.id, routes[beacon.id] || []);
           });
           removeStale(activeIds);
+          removeStaleRoutes(activeIds);
           renderDeviceList(beacons);
           fitInitialView(beacons);
 
@@ -730,6 +812,7 @@
         if (!id) return;
         selectedId = id;
         highlightActiveCard();
+        refreshRouteStyles();
         focusDevice(id);
       });
 

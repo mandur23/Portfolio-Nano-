@@ -4,8 +4,12 @@ const { Redis } = require('@upstash/redis');
 const BEACON_TTL_SEC = 24 * 60 * 60;
 const EVENT_TTL_MS = 10 * 60 * 1000;
 const MAX_EVENTS = 30;
+const MAX_ROUTE_POINTS = 500;
+const MIN_ROUTE_DISTANCE_M = 5;
+const MIN_ROUTE_INTERVAL_MS = 3000;
 
 const BEACON_KEY_PREFIX = 'beacon:';
+const ROUTE_KEY_SUFFIX = ':route';
 const BEACON_IDS_KEY = 'beacon:ids';
 const EVENTS_KEY = 'beacon:events';
 
@@ -16,6 +20,10 @@ global.__beaconMemoryStore = memoryStore;
 /** @type {object[]} */
 const eventLog = global.__beaconEventLog || [];
 global.__beaconEventLog = eventLog;
+
+/** @type {Map<string, object[]>} */
+const memoryRoutes = global.__beaconMemoryRoutes || new Map();
+global.__beaconMemoryRoutes = memoryRoutes;
 
 /** @type {import('redis').RedisClientType | null} */
 let redisClient = global.__beaconRedisClient || null;
@@ -67,6 +75,33 @@ async function getRedisClient() {
 
 function beaconKey(id) {
   return `${BEACON_KEY_PREFIX}${id}`;
+}
+
+function routeKey(id) {
+  return `${BEACON_KEY_PREFIX}${id}${ROUTE_KEY_SUFFIX}`;
+}
+
+function toRoutePoint(beacon) {
+  return { lat: beacon.lat, lng: beacon.lng, at: beacon.updatedAt };
+}
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * earthRadius * Math.asin(Math.sqrt(a));
+}
+
+function shouldAppendRoute(lastPoint, nextPoint) {
+  if (!lastPoint) return true;
+  const distance = haversineMeters(lastPoint.lat, lastPoint.lng, nextPoint.lat, nextPoint.lng);
+  if (distance >= MIN_ROUTE_DISTANCE_M) return true;
+  const elapsed = new Date(nextPoint.at).getTime() - new Date(lastPoint.at).getTime();
+  return elapsed >= MIN_ROUTE_INTERVAL_MS;
 }
 
 function cors(res) {
@@ -181,6 +216,7 @@ async function saveBeacon(beacon) {
   const redis = await getRedisClient();
   if (!redis) {
     memoryStore.set(beacon.id, beacon);
+    await appendRoutePoint(beacon);
     return;
   }
 
@@ -188,28 +224,117 @@ async function saveBeacon(beacon) {
   if (resolveStorageMode() === 'upstash') {
     await redis.set(key, beacon, { ex: BEACON_TTL_SEC });
     await redis.sadd(BEACON_IDS_KEY, beacon.id);
+  } else {
+    await redis.set(key, JSON.stringify(beacon), { EX: BEACON_TTL_SEC });
+    await redis.sAdd(BEACON_IDS_KEY, beacon.id);
+  }
+
+  await appendRoutePoint(beacon);
+}
+
+async function getLastRoutePoint(id) {
+  const redis = await getRedisClient();
+  if (!redis) {
+    const points = memoryRoutes.get(id) || [];
+    return points.length ? points[points.length - 1] : null;
+  }
+
+  const key = routeKey(id);
+  const isUpstash = resolveStorageMode() === 'upstash';
+  const items = isUpstash
+    ? await redis.lrange(key, -1, -1)
+    : (await redis.lRange(key, -1, -1)).map(parseStoredJson).filter(Boolean);
+
+  return items.length ? items[0] : null;
+}
+
+async function appendRoutePoint(beacon) {
+  const point = toRoutePoint(beacon);
+  const lastPoint = await getLastRoutePoint(beacon.id);
+  if (!shouldAppendRoute(lastPoint, point)) return;
+
+  const redis = await getRedisClient();
+  if (!redis) {
+    const points = memoryRoutes.get(beacon.id) || [];
+    points.push(point);
+    while (points.length > MAX_ROUTE_POINTS) points.shift();
+    memoryRoutes.set(beacon.id, points);
     return;
   }
 
-  await redis.set(key, JSON.stringify(beacon), { EX: BEACON_TTL_SEC });
-  await redis.sAdd(BEACON_IDS_KEY, beacon.id);
+  const key = routeKey(beacon.id);
+  const isUpstash = resolveStorageMode() === 'upstash';
+  if (isUpstash) {
+    await redis.rpush(key, point);
+    await redis.ltrim(key, -MAX_ROUTE_POINTS, -1);
+    await redis.expire(key, BEACON_TTL_SEC);
+    return;
+  }
+
+  await redis.rPush(key, JSON.stringify(point));
+  await redis.lTrim(key, -MAX_ROUTE_POINTS, -1);
+  await redis.expire(key, BEACON_TTL_SEC);
+}
+
+async function getRoutePoints(id) {
+  const redis = await getRedisClient();
+  if (!redis) {
+    return memoryRoutes.get(id) || [];
+  }
+
+  const key = routeKey(id);
+  const isUpstash = resolveStorageMode() === 'upstash';
+  if (isUpstash) {
+    return await redis.lrange(key, 0, -1);
+  }
+
+  return (await redis.lRange(key, 0, -1)).map(parseStoredJson).filter(Boolean);
+}
+
+async function removeRoute(id) {
+  const redis = await getRedisClient();
+  if (!redis) {
+    memoryRoutes.delete(id);
+    return;
+  }
+
+  const isUpstash = resolveStorageMode() === 'upstash';
+  if (isUpstash) {
+    await redis.del(routeKey(id));
+    return;
+  }
+
+  await redis.del(routeKey(id));
+}
+
+async function listRoutes(ids) {
+  const routes = {};
+  await Promise.all(
+    ids.map(async (id) => {
+      const points = await getRoutePoints(id);
+      if (points.length) routes[id] = points;
+    }),
+  );
+  return routes;
 }
 
 async function removeBeacon(id) {
   const redis = await getRedisClient();
   if (!redis) {
     memoryStore.delete(id);
+    memoryRoutes.delete(id);
     return;
   }
 
   if (resolveStorageMode() === 'upstash') {
     await redis.del(beaconKey(id));
     await redis.srem(BEACON_IDS_KEY, id);
-    return;
+  } else {
+    await redis.del(beaconKey(id));
+    await redis.sRem(BEACON_IDS_KEY, id);
   }
 
-  await redis.del(beaconKey(id));
-  await redis.sRem(BEACON_IDS_KEY, id);
+  await removeRoute(id);
 }
 
 async function listActiveBeacons() {
@@ -259,11 +384,12 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const [beacons, events] = await Promise.all([
-        listActiveBeacons(),
+      const beacons = await listActiveBeacons();
+      const [events, routes] = await Promise.all([
         listRecentEvents(),
+        listRoutes(beacons.map((beacon) => beacon.id)),
       ]);
-      const payload = { beacons, events };
+      const payload = { beacons, events, routes };
       if (req.query?.debug === '1') {
         payload.storage = resolveStorageMode();
       }
