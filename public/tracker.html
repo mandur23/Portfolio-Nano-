@@ -741,7 +741,7 @@
         initMap();
         setConnection(null, '연결 중…');
         refresh();
-        refreshTimer = setInterval(refresh, 5000);
+        refreshTimer = setInterval(refresh, 1000);
         requestAnimationFrame(invalidateMapSize);
         setTimeout(invalidateMapSize, 150);
       }
