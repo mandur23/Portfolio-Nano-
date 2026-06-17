@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Beacon Monitor</title>
+    <title>Beacon 통합 관제</title>
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -24,9 +24,284 @@
         color: #f0f0f5;
       }
 
-      #map {
-        width: 100%;
+      .app {
+        display: flex;
+        flex-direction: column;
         height: 100%;
+      }
+
+      .topbar {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 16px;
+        background: #13131a;
+        border-bottom: 1px solid #1e1e2a;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #f0f0f5;
+        white-space: nowrap;
+      }
+
+      .kpis {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .kpi {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #0a0a0f;
+        border: 1px solid #1e1e2a;
+        color: #8b8b9e;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+
+      .kpi--active {
+        border-color: #1e2a1e;
+        color: #4ade80;
+      }
+
+      .kpi--exit {
+        border-color: #2a1e1e;
+        color: #fca5a5;
+      }
+
+      .conn {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #8b8b9e;
+        white-space: nowrap;
+      }
+
+      .conn__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #64748b;
+        display: inline-block;
+      }
+
+      .conn.is-online {
+        color: #4ade80;
+      }
+
+      .conn.is-online .conn__dot {
+        background: #22c55e;
+      }
+
+      .conn.is-offline {
+        color: #fca5a5;
+      }
+
+      .conn.is-offline .conn__dot {
+        background: #ef4444;
+      }
+
+      .body {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+
+      .sidebar {
+        width: 268px;
+        flex-shrink: 0;
+        background: #0d0d13;
+        border-right: 1px solid #1e1e2a;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .panel-title {
+        padding: 10px 12px;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #64748b;
+        border-bottom: 1px solid #1e1e2a;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .panel-title__count {
+        color: #8b8b9e;
+        font-weight: 400;
+      }
+
+      .device-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+      }
+
+      .device {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: #13131a;
+        border: 1px solid #1e1e2a;
+        border-left: 3px solid #1e1e2a;
+        border-radius: 8px;
+        padding: 10px 11px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+
+      .device:hover {
+        border-color: #2b3a55;
+      }
+
+      .device.is-active {
+        border-color: #2b3a55;
+        border-left-color: #60a5fa;
+      }
+
+      .device.is-offline {
+        background: #0f0f15;
+        opacity: 0.72;
+      }
+
+      .device__head {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      .device__name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #f0f0f5;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .device__focus {
+        margin-left: auto;
+        font-size: 11px;
+        color: #64748b;
+        flex-shrink: 0;
+      }
+
+      .device.is-active .device__focus,
+      .device:hover .device__focus {
+        color: #60a5fa;
+      }
+
+      .device__meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #8b8b9e;
+        font-size: 11px;
+      }
+
+      .batt {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .batt__shell {
+        position: relative;
+        width: 22px;
+        height: 11px;
+        border: 1px solid #3a3a4a;
+        border-radius: 2px;
+        padding: 1px;
+      }
+
+      .batt__shell::after {
+        content: '';
+        position: absolute;
+        right: -3px;
+        top: 3px;
+        width: 2px;
+        height: 5px;
+        background: #3a3a4a;
+        border-radius: 0 1px 1px 0;
+      }
+
+      .batt__fill {
+        display: block;
+        height: 100%;
+        border-radius: 1px;
+      }
+
+      .exit-section {
+        flex-shrink: 0;
+        border-top: 1px solid #1e1e2a;
+      }
+
+      .exit-list {
+        padding: 0 12px 12px;
+        max-height: 132px;
+        overflow-y: auto;
+      }
+
+      .exit-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 0;
+        color: #fca5a5;
+        font-size: 11.5px;
+        line-height: 1.5;
+      }
+
+      .exit-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ef4444;
+        flex-shrink: 0;
+      }
+
+      .empty {
+        margin: 14px 8px;
+        color: #64748b;
+        font-size: 12px;
+      }
+
+      .map-wrap {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+      }
+
+      #map {
+        position: absolute;
+        inset: 0;
       }
 
       .leaflet-popup-content-wrapper {
@@ -75,96 +350,59 @@
         word-break: break-word;
       }
 
-      .status-bar {
-        position: fixed;
-        top: 12px;
-        right: 12px;
-        z-index: 1000;
-        padding: 8px 12px;
-        border-radius: 8px;
-        background: rgba(19, 19, 26, 0.92);
-        border: 1px solid #1e1e2a;
-        font-size: 0.8rem;
-        color: #8b8b9e;
-      }
-
-      .exit-toast {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 1001;
-        padding: 10px 14px;
-        border-radius: 8px;
-        background: rgba(127, 29, 29, 0.94);
-        border: 1px solid #ef4444;
-        font-size: 0.82rem;
-        color: #fecaca;
-        max-width: min(360px, calc(100vw - 24px));
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-        animation: toastIn 0.25s ease;
-      }
-
-      .event-log {
-        position: fixed;
-        bottom: 12px;
-        left: 12px;
-        z-index: 1000;
-        width: min(320px, calc(100vw - 24px));
-        max-height: 160px;
-        overflow-y: auto;
-        padding: 10px 12px;
-        border-radius: 10px;
-        background: rgba(19, 19, 26, 0.92);
-        border: 1px solid #1e1e2a;
-        font-size: 0.75rem;
-        color: #8b8b9e;
-      }
-
-      .event-log__title {
-        margin: 0 0 8px;
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #64748b;
-      }
-
-      .event-log__item {
-        padding: 6px 0;
-        border-top: 1px solid #1e1e2a;
-        color: #fca5a5;
-        line-height: 1.45;
-      }
-
-      .event-log__item:first-of-type {
-        border-top: none;
-        padding-top: 0;
-      }
-
-      .event-log__empty {
-        margin: 0;
-        color: #64748b;
-      }
-
-      @keyframes toastIn {
-        from {
-          opacity: 0;
-          transform: translateY(-8px);
+      @media (max-width: 640px) {
+        .body {
+          flex-direction: column;
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
+
+        .sidebar {
+          width: 100%;
+          max-height: 44%;
+          border-right: none;
+          border-bottom: 1px solid #1e1e2a;
+        }
+
+        .map-wrap {
+          flex: 1;
         }
       }
     </style>
   </head>
   <body>
-    <div id="map"></div>
-    <div id="status" class="status-bar">연결 중…</div>
-    <aside id="event-log" class="event-log" hidden>
-      <p class="event-log__title">종료 이벤트</p>
-      <div id="event-log-list"></div>
-    </aside>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4.93 19.07a10 10 0 0 1 0-14.14M7.76 16.24a6 6 0 0 1 0-8.48M19.07 4.93a10 10 0 0 1 0 14.14M16.24 7.76a6 6 0 0 1 0 8.48" />
+            <circle cx="12" cy="12" r="1.6" fill="#60a5fa" stroke="none" />
+          </svg>
+          <span>Beacon 통합 관제</span>
+        </div>
+        <div class="kpis">
+          <span class="kpi kpi--active" id="kpi-active">활성 0</span>
+          <span class="kpi kpi--exit" id="kpi-exit" hidden>종료 0</span>
+          <span class="kpi" id="kpi-time">—</span>
+        </div>
+        <span class="conn" id="conn"><span class="conn__dot"></span><span id="conn-text">연결 중…</span></span>
+      </header>
+
+      <div class="body">
+        <aside class="sidebar">
+          <div class="panel-title">기기 목록 <span class="panel-title__count" id="device-count"></span></div>
+          <div class="device-list" id="device-list">
+            <p class="empty">대기 중인 기기가 없습니다</p>
+          </div>
+          <section class="exit-section" id="exit-section" hidden>
+            <div class="panel-title">종료 이벤트</div>
+            <div class="exit-list" id="exit-list"></div>
+          </section>
+        </aside>
+
+        <div class="map-wrap">
+          <div id="map"></div>
+        </div>
+      </div>
+    </div>
 
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -172,18 +410,34 @@
       crossorigin=""
     ></script>
     <script>
-      const statusEl = document.getElementById('status');
-      const eventLogEl = document.getElementById('event-log');
-      const eventLogListEl = document.getElementById('event-log-list');
+      const kpiActiveEl = document.getElementById('kpi-active');
+      const kpiExitEl = document.getElementById('kpi-exit');
+      const kpiTimeEl = document.getElementById('kpi-time');
+      const connEl = document.getElementById('conn');
+      const connTextEl = document.getElementById('conn-text');
+      const deviceListEl = document.getElementById('device-list');
+      const deviceCountEl = document.getElementById('device-count');
+      const exitSectionEl = document.getElementById('exit-section');
+      const exitListEl = document.getElementById('exit-list');
+
       const markers = new Map();
       let map = null;
       let refreshTimer = null;
       let initialViewSet = false;
       let userInteracted = false;
       let firstRefresh = true;
+      let selectedId = null;
       const seenEvents = new Set();
-      let exitToastTimer = null;
-      let exitToastEl = null;
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (c) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        }[c]));
+      }
 
       function invalidateMapSize() {
         if (!map) return;
@@ -230,6 +484,35 @@
         }
       }
 
+      function relativeTime(iso) {
+        const diff = Date.now() - new Date(iso).getTime();
+        if (!Number.isFinite(diff)) return '—';
+        if (diff < 10000) return '방금';
+        if (diff < 60000) return Math.floor(diff / 1000) + '초 전';
+        if (diff < 3600000) return Math.floor(diff / 60000) + '분 전';
+        return Math.floor(diff / 3600000) + '시간 전';
+      }
+
+      function deviceStatus(beacon) {
+        const age = Date.now() - new Date(beacon.updatedAt).getTime();
+        if (age < 30000) return { key: 'online', label: '온라인', color: '#22c55e' };
+        if (age < 180000) return { key: 'idle', label: '지연', color: '#fbbf24' };
+        return { key: 'offline', label: '오프라인', color: '#64748b' };
+      }
+
+      function batteryHtml(battery) {
+        if (battery == null || !Number.isFinite(Number(battery))) {
+          return '<span class="batt"><span class="batt__shell"></span><span>—</span></span>';
+        }
+        const pct = Math.max(0, Math.min(100, Math.round(Number(battery))));
+        const color = pct <= 20 ? '#fca5a5' : pct <= 50 ? '#fbbf24' : '#4ade80';
+        return (
+          '<span class="batt"><span class="batt__shell">' +
+          '<span class="batt__fill" style="width:' + pct + '%;background:' + color + '"></span>' +
+          '</span><span>' + pct + '%</span></span>'
+        );
+      }
+
       function eventKey(event) {
         return `${event.id}:${event.at}`;
       }
@@ -237,13 +520,13 @@
       function popupHtml(beacon) {
         return `
           <div class="beacon-popup">
-            <h3>${beacon.device}</h3>
+            <h3>${escapeHtml(beacon.device)}</h3>
             <dl>
-              <div><dt>OS</dt><dd>${beacon.os}</dd></div>
-              <div><dt>모델</dt><dd>${beacon.model ?? '—'}</dd></div>
-              <div><dt>제조사</dt><dd>${beacon.manufacturer ?? '—'}</dd></div>
-              <div><dt>앱 버전</dt><dd>${beacon.appVersion ?? '—'}</dd></div>
-              <div><dt>배터리</dt><dd>${beacon.battery != null ? beacon.battery + '%' : '—'}</dd></div>
+              <div><dt>OS</dt><dd>${escapeHtml(beacon.os)}</dd></div>
+              <div><dt>모델</dt><dd>${escapeHtml(beacon.model ?? '—')}</dd></div>
+              <div><dt>제조사</dt><dd>${escapeHtml(beacon.manufacturer ?? '—')}</dd></div>
+              <div><dt>앱 버전</dt><dd>${escapeHtml(beacon.appVersion ?? '—')}</dd></div>
+              <div><dt>배터리</dt><dd>${beacon.battery != null ? escapeHtml(beacon.battery) + '%' : '—'}</dd></div>
               <div><dt>정확도</dt><dd>${beacon.accuracy != null ? '±' + Math.round(beacon.accuracy) + 'm' : '—'}</dd></div>
               <div><dt>좌표</dt><dd>${beacon.lat.toFixed(6)}, ${beacon.lng.toFixed(6)}</dd></div>
               <div><dt>갱신</dt><dd>${formatTime(beacon.updatedAt)}</dd></div>
@@ -279,7 +562,11 @@
           .bindPopup(popupHtml(beacon))
           .addTo(map);
 
-        marker.on('click', () => marker.openPopup());
+        marker.on('click', () => {
+          selectedId = beacon.id;
+          marker.openPopup();
+          highlightActiveCard();
+        });
         markers.set(beacon.id, marker);
       }
 
@@ -304,55 +591,90 @@
         initialViewSet = true;
       }
 
-      function showExitToast(event) {
-        const key = eventKey(event);
-        if (seenEvents.has(key)) return;
-        seenEvents.add(key);
-
-        const label = event.device || event.id;
-        if (exitToastEl) exitToastEl.remove();
-        exitToastEl = document.createElement('div');
-        exitToastEl.className = 'exit-toast';
-        exitToastEl.textContent = `${label} — ${event.message || '앱 종료'}`;
-        document.body.appendChild(exitToastEl);
-
-        if (exitToastTimer) clearTimeout(exitToastTimer);
-        exitToastTimer = setTimeout(() => {
-          exitToastEl?.remove();
-          exitToastEl = null;
-        }, 6000);
+      function focusDevice(id) {
+        const marker = markers.get(id);
+        if (!marker || !map) return;
+        userInteracted = true;
+        map.flyTo(marker.getLatLng(), Math.max(map.getZoom() || 7, 15), { duration: 0.6 });
+        marker.openPopup();
       }
 
-      function renderEventLog(exitEvents) {
-        if (exitEvents.length === 0) {
-          eventLogEl.hidden = true;
-          eventLogListEl.innerHTML = '';
+      function highlightActiveCard() {
+        deviceListEl.querySelectorAll('.device').forEach((el) => {
+          el.classList.toggle('is-active', el.getAttribute('data-id') === selectedId);
+        });
+      }
+
+      function renderDeviceList(beacons) {
+        deviceCountEl.textContent = beacons.length ? `${beacons.length}대` : '';
+
+        if (beacons.length === 0) {
+          deviceListEl.innerHTML = '<p class="empty">대기 중인 기기가 없습니다</p>';
           return;
         }
 
-        eventLogEl.hidden = false;
-        eventLogListEl.innerHTML = exitEvents
+        const sorted = beacons
+          .slice()
+          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+        deviceListEl.innerHTML = sorted
+          .map((beacon) => {
+            const status = deviceStatus(beacon);
+            const active = beacon.id === selectedId ? ' is-active' : '';
+            const offline = status.key === 'offline' ? ' is-offline' : '';
+            return `
+              <button type="button" class="device${active}${offline}" data-id="${escapeHtml(beacon.id)}">
+                <div class="device__head">
+                  <span class="dot" style="background:${status.color}"></span>
+                  <span class="device__name">${escapeHtml(beacon.device)}</span>
+                  <span class="device__focus">집중 ›</span>
+                </div>
+                <div class="device__meta">
+                  ${batteryHtml(beacon.battery)}
+                  <span>OS ${escapeHtml(beacon.os)}</span>
+                  <span>${relativeTime(beacon.updatedAt)}</span>
+                </div>
+              </button>
+            `;
+          })
+          .join('');
+      }
+
+      function renderExitList(exitEvents) {
+        if (exitEvents.length === 0) {
+          exitSectionEl.hidden = true;
+          exitListEl.innerHTML = '';
+          return;
+        }
+
+        exitSectionEl.hidden = false;
+        exitListEl.innerHTML = exitEvents
           .slice(0, 8)
           .map(
             (event) =>
-              `<div class="event-log__item">${event.device || event.id} · ${formatTime(event.at)}</div>`
+              `<div class="exit-item"><span class="exit-dot"></span><span>${escapeHtml(
+                event.device || event.id
+              )} · ${formatTime(event.at)}</span></div>`
           )
           .join('');
       }
 
       function handleExitEvents(events, notify) {
         const exitEvents = events.filter((event) => event.type === 'exit');
-        renderEventLog(exitEvents);
-
-        if (!notify) {
-          exitEvents.forEach((event) => seenEvents.add(eventKey(event)));
-          return;
-        }
+        renderExitList(exitEvents);
 
         exitEvents.forEach((event) => {
-          showExitToast(event);
-          removeMarkerById(event.id);
+          if (notify && !seenEvents.has(eventKey(event))) {
+            removeMarkerById(event.id);
+          }
+          seenEvents.add(eventKey(event));
         });
+      }
+
+      function setConnection(state, text) {
+        connEl.classList.remove('is-online', 'is-offline');
+        if (state) connEl.classList.add(state);
+        connTextEl.textContent = text;
       }
 
       function parseBeaconResponse(data) {
@@ -377,33 +699,47 @@
 
           handleExitEvents(events, notify);
 
-          const exitCount = events.filter((event) => event.type === 'exit').length;
-          statusEl.textContent = `활성 ${beacons.length}대${
-            exitCount > 0 ? ` · 종료 ${exitCount}건` : ''
-          } · ${new Date().toLocaleTimeString('ko-KR')}`;
-
           const activeIds = new Set();
           beacons.forEach((beacon) => {
             activeIds.add(beacon.id);
             upsertMarker(beacon);
           });
           removeStale(activeIds);
+          renderDeviceList(beacons);
           fitInitialView(beacons);
+
+          const exitCount = events.filter((event) => event.type === 'exit').length;
+          kpiActiveEl.textContent = `활성 ${beacons.length}`;
+          if (exitCount > 0) {
+            kpiExitEl.hidden = false;
+            kpiExitEl.textContent = `종료 ${exitCount}`;
+          } else {
+            kpiExitEl.hidden = true;
+          }
+          kpiTimeEl.textContent = new Date().toLocaleTimeString('ko-KR');
+          setConnection('is-online', '연결됨');
         } catch {
-          statusEl.textContent = '데이터를 불러오지 못했습니다';
+          setConnection('is-offline', '연결 끊김');
         }
       }
+
+      deviceListEl.addEventListener('click', (event) => {
+        const card = event.target.closest('.device');
+        if (!card) return;
+        const id = card.getAttribute('data-id');
+        if (!id) return;
+        selectedId = id;
+        highlightActiveCard();
+        focusDevice(id);
+      });
 
       function startTracker() {
         destroyMap();
         seenEvents.clear();
         firstRefresh = true;
-        if (exitToastEl) {
-          exitToastEl.remove();
-          exitToastEl = null;
-        }
+        selectedId = null;
         initMap();
-        statusEl.textContent = '연결 중…';
+        setConnection(null, '연결 중…');
         refresh();
         refreshTimer = setInterval(refresh, 5000);
         requestAnimationFrame(invalidateMapSize);
