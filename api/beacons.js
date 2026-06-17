@@ -1,3 +1,4 @@
+const { createClient } = require('redis');
 const { Redis } = require('@upstash/redis');
 
 const BEACON_TTL_SEC = 24 * 60 * 60;
@@ -8,10 +9,6 @@ const BEACON_KEY_PREFIX = 'beacon:';
 const BEACON_IDS_KEY = 'beacon:ids';
 const EVENTS_KEY = 'beacon:events';
 
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? Redis.fromEnv()
-  : null;
-
 /** @type {Map<string, object>} */
 const memoryStore = global.__beaconMemoryStore || new Map();
 global.__beaconMemoryStore = memoryStore;
@@ -19,6 +16,54 @@ global.__beaconMemoryStore = memoryStore;
 /** @type {object[]} */
 const eventLog = global.__beaconEventLog || [];
 global.__beaconEventLog = eventLog;
+
+/** @type {import('redis').RedisClientType | null} */
+let redisClient = global.__beaconRedisClient || null;
+global.__beaconRedisClient = redisClient;
+
+/** @type {import('@upstash/redis').Redis | null} */
+let upstashClient = global.__beaconUpstashClient || null;
+global.__beaconUpstashClient = upstashClient;
+
+function resolveStorageMode() {
+  if (process.env.REDIS_URL) return 'redis';
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) return 'upstash';
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) return 'upstash';
+  return 'memory';
+}
+
+function createUpstashClient() {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return Redis.fromEnv();
+  }
+
+  return new Redis({
+    url: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
+  });
+}
+
+async function getRedisClient() {
+  const mode = resolveStorageMode();
+  if (mode === 'memory') return null;
+
+  if (mode === 'upstash') {
+    if (!upstashClient) {
+      upstashClient = createUpstashClient();
+      global.__beaconUpstashClient = upstashClient;
+    }
+    return upstashClient;
+  }
+
+  if (!redisClient || !redisClient.isOpen) {
+    redisClient = createClient({ url: process.env.REDIS_URL });
+    redisClient.on('error', () => {});
+    await redisClient.connect();
+    global.__beaconRedisClient = redisClient;
+  }
+
+  return redisClient;
+}
 
 function beaconKey(id) {
   return `${BEACON_KEY_PREFIX}${id}`;
@@ -41,19 +86,36 @@ function parseRequestBody(req) {
   }
 }
 
+function parseStoredJson(value) {
+  if (value == null) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 function pushEventMemory(event) {
   eventLog.unshift(event);
   while (eventLog.length > MAX_EVENTS) eventLog.pop();
 }
 
 async function pushEvent(event) {
+  const redis = await getRedisClient();
   if (!redis) {
     pushEventMemory(event);
     return;
   }
 
-  await redis.lpush(EVENTS_KEY, event);
-  await redis.ltrim(EVENTS_KEY, 0, MAX_EVENTS - 1);
+  if (resolveStorageMode() === 'upstash') {
+    await redis.lpush(EVENTS_KEY, event);
+    await redis.ltrim(EVENTS_KEY, 0, MAX_EVENTS - 1);
+    return;
+  }
+
+  await redis.lPush(EVENTS_KEY, JSON.stringify(event));
+  await redis.lTrim(EVENTS_KEY, 0, MAX_EVENTS - 1);
 }
 
 function listRecentEventsMemory() {
@@ -62,9 +124,13 @@ function listRecentEventsMemory() {
 }
 
 async function listRecentEvents() {
+  const redis = await getRedisClient();
   if (!redis) return listRecentEventsMemory();
 
-  const events = await redis.lrange(EVENTS_KEY, 0, MAX_EVENTS - 1);
+  const events = resolveStorageMode() === 'upstash'
+    ? await redis.lrange(EVENTS_KEY, 0, MAX_EVENTS - 1)
+    : (await redis.lRange(EVENTS_KEY, 0, MAX_EVENTS - 1)).map(parseStoredJson).filter(Boolean);
+
   const now = Date.now();
   return events.filter((event) => now - new Date(event.at).getTime() < EVENT_TTL_MS);
 }
@@ -112,38 +178,56 @@ function listActiveBeaconsMemory() {
 }
 
 async function saveBeacon(beacon) {
+  const redis = await getRedisClient();
   if (!redis) {
     memoryStore.set(beacon.id, beacon);
     return;
   }
 
-  await redis.set(beaconKey(beacon.id), beacon, { ex: BEACON_TTL_SEC });
-  await redis.sadd(BEACON_IDS_KEY, beacon.id);
+  const key = beaconKey(beacon.id);
+  if (resolveStorageMode() === 'upstash') {
+    await redis.set(key, beacon, { ex: BEACON_TTL_SEC });
+    await redis.sadd(BEACON_IDS_KEY, beacon.id);
+    return;
+  }
+
+  await redis.set(key, JSON.stringify(beacon), { EX: BEACON_TTL_SEC });
+  await redis.sAdd(BEACON_IDS_KEY, beacon.id);
 }
 
 async function removeBeacon(id) {
+  const redis = await getRedisClient();
   if (!redis) {
     memoryStore.delete(id);
     return;
   }
 
+  if (resolveStorageMode() === 'upstash') {
+    await redis.del(beaconKey(id));
+    await redis.srem(BEACON_IDS_KEY, id);
+    return;
+  }
+
   await redis.del(beaconKey(id));
-  await redis.srem(BEACON_IDS_KEY, id);
+  await redis.sRem(BEACON_IDS_KEY, id);
 }
 
 async function listActiveBeacons() {
+  const redis = await getRedisClient();
   if (!redis) return listActiveBeaconsMemory();
 
-  const ids = await redis.smembers(BEACON_IDS_KEY);
+  const isUpstash = resolveStorageMode() === 'upstash';
+  const ids = isUpstash ? await redis.smembers(BEACON_IDS_KEY) : await redis.sMembers(BEACON_IDS_KEY);
   if (!ids.length) return [];
 
   const keys = ids.map((id) => beaconKey(id));
-  const values = await redis.mget(...keys);
+  const values = isUpstash ? await redis.mget(...keys) : await redis.mGet(keys);
   const now = Date.now();
   const beacons = [];
   const staleIds = [];
 
-  values.forEach((beacon, index) => {
+  values.forEach((value, index) => {
+    const beacon = isUpstash ? value : parseStoredJson(value);
     if (!beacon) {
       staleIds.push(ids[index]);
       return;
@@ -179,7 +263,11 @@ module.exports = async function handler(req, res) {
         listActiveBeacons(),
         listRecentEvents(),
       ]);
-      res.status(200).json({ beacons, events });
+      const payload = { beacons, events };
+      if (req.query?.debug === '1') {
+        payload.storage = resolveStorageMode();
+      }
+      res.status(200).json(payload);
       return;
     }
 
@@ -211,7 +299,7 @@ module.exports = async function handler(req, res) {
       }
 
       await saveBeacon(beacon);
-      res.status(200).json({ ok: true });
+      res.status(200).json({ ok: true, storage: resolveStorageMode() });
       return;
     }
 
