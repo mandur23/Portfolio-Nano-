@@ -3,6 +3,7 @@ const { Redis } = require('@upstash/redis');
 
 const BEACON_TTL_SEC = 24 * 60 * 60;
 const EVENT_TTL_MS = 10 * 60 * 1000;
+const ALIVE_TIMEOUT_MS = 60 * 1000;
 const MAX_EVENTS = 30;
 const MAX_ROUTE_POINTS = 500;
 const MIN_ROUTE_DISTANCE_M = 5;
@@ -189,7 +190,17 @@ function validateBeacon(body) {
     manufacturer: String(body.manufacturer ?? '—'),
     appVersion: String(body.appVersion ?? '—'),
     battery: Number.isFinite(Number(body.battery)) ? Number(body.battery) : null,
+    type: 'alive',
     updatedAt: new Date().toISOString(),
+  };
+}
+
+function enrichBeacon(beacon) {
+  const silenceMs = Date.now() - new Date(beacon.updatedAt).getTime();
+  return {
+    ...beacon,
+    alive: silenceMs < ALIVE_TIMEOUT_MS,
+    silenceSec: Math.max(0, Math.floor(silenceMs / 1000)),
   };
 }
 
@@ -384,7 +395,7 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const beacons = await listActiveBeacons();
+      const beacons = (await listActiveBeacons()).map(enrichBeacon);
       const [events, routes] = await Promise.all([
         listRecentEvents(),
         listRoutes(beacons.map((beacon) => beacon.id)),
