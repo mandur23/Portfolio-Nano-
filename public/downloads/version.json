@@ -1,6 +1,6 @@
 {
-  "versionCode": 23,
-  "versionName": "1.3.3",
+  "versionCode": 24,
+  "versionName": "1.3.4",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "1분 생존 신호 전송, 1분 무응답 시 관제에서 생존 확인 표시"
+  "releaseNotes": "헤드셋·잠금화면 미디어 버튼 지원, 재생 서비스 안정화, 코루틴 예외 처리 강화"
 }
