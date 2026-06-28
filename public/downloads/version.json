@@ -1,6 +1,6 @@
 {
-  "versionCode": 27,
-  "versionName": "1.3.7",
+  "versionCode": 28,
+  "versionName": "1.3.8",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "알람 기능 추가 — 잠금화면 전체화면, 재부팅·앱 업데이트 후 자동 재예약"
+  "releaseNotes": "화면 회전 시 탭·화면 유지, 수면 타이머 실시간 카운트다운, 하단 탭 전환 시 오버레이 닫기"
 }
