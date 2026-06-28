@@ -1,6 +1,6 @@
 {
-  "versionCode": 26,
-  "versionName": "1.3.6",
+  "versionCode": 27,
+  "versionName": "1.3.7",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "인앱 업데이트 APK 검증·서명 안내 개선, 음량 정규화(라우드니스), 배포 서명 고정"
+  "releaseNotes": "알람 기능 추가 — 잠금화면 전체화면, 재부팅·앱 업데이트 후 자동 재예약"
 }
