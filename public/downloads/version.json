@@ -1,6 +1,6 @@
 {
-  "versionCode": 29,
-  "versionName": "1.3.9",
+  "versionCode": 30,
+  "versionName": "1.4.0",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "알람 전용 재생(무음·방해금지에서도 울림), 잠금화면 깨우기 개선, YouTube 추천 필터 강화"
+  "releaseNotes": "알람 자동 종료·볼륨 페이드인·진동, 미리듣기, 알림 권한 안내"
 }
