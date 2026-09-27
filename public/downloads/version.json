@@ -1,6 +1,6 @@
 {
-  "versionCode": 32,
-  "versionName": "1.4.2",
+  "versionCode": 33,
+  "versionName": "1.4.3",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "위치 수집·전송 기능 제거, 업데이트·미디어 목록 보안 강화, 재생 화면 성능 개선"
+  "releaseNotes": "영상이 있는 곡을 재생할 때 곡이 연속으로 넘어가던 문제 수정"
 }
