@@ -1,6 +1,6 @@
 {
-  "versionCode": 31,
-  "versionName": "1.4.1",
+  "versionCode": 32,
+  "versionName": "1.4.2",
   "apkUrl": "https://github.com/mandur23/Portfolio-Nano-/releases/latest/download/melody-breeze.apk",
-  "releaseNotes": "Android Auto 앨범아트 표시 수정, 곡 전환 시 이전 아트워크가 남는 문제 방지"
+  "releaseNotes": "위치 수집·전송 기능 제거, 업데이트·미디어 목록 보안 강화, 재생 화면 성능 개선"
 }

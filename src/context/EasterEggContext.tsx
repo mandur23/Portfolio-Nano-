@@ -20,10 +20,7 @@ const KONAMI_SEQUENCE = [
   'a',
 ] as const;
 
-const LOGO_CLICK_TARGET = 5;
-const LOGO_CLICK_WINDOW_MS = 4000;
 const TOAST_DURATION_MS = 3500;
-const TRACKER_WINDOW_NAME = 'beaconTracker';
 
 type ToastMessage = { id: number; text: string } | null;
 
@@ -34,35 +31,11 @@ interface EasterEggContextValue {
 
 const EasterEggContext = createContext<EasterEggContextValue | null>(null);
 
-function openTrackerPage() {
-  const url = `${window.location.origin}/tracker.html?t=${Date.now()}`;
-  const existing = window.open('', TRACKER_WINDOW_NAME);
-
-  if (existing && !existing.closed) {
-    try {
-      existing.location.href = url;
-      existing.focus();
-      return;
-    } catch {
-      // cross-origin or blocked — fall through to new window
-    }
-  }
-
-  const popup = window.open(url, TRACKER_WINDOW_NAME);
-  if (!popup) {
-    window.location.assign(url);
-  } else {
-    popup.focus();
-  }
-}
-
 export function EasterEggProvider({ children }: { children: React.ReactNode }) {
   const [arisMode, setArisMode] = useState(false);
   const [toast, setToast] = useState<ToastMessage>(null);
 
   const konamiIndexRef = useRef(0);
-  const logoClickCountRef = useRef(0);
-  const logoClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((text: string) => {
@@ -74,24 +47,9 @@ export function EasterEggProvider({ children }: { children: React.ReactNode }) {
     toastTimerRef.current = setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }, []);
 
-  const handleLogoClick = useCallback((event: React.MouseEvent) => {
-    if (logoClickTimerRef.current) {
-      clearTimeout(logoClickTimerRef.current);
-    }
-
-    logoClickCountRef.current += 1;
-
-    if (logoClickCountRef.current >= LOGO_CLICK_TARGET) {
-      logoClickCountRef.current = 0;
-      event.preventDefault();
-      openTrackerPage();
-      return;
-    }
-
-    logoClickTimerRef.current = setTimeout(() => {
-      logoClickCountRef.current = 0;
-    }, LOGO_CLICK_WINDOW_MS);
-  }, []);
+  // 로고 5연타 → 위치 관제 페이지 이스터에그는 위치 수집 기능과 함께 제거됨.
+  // Header 의 onClick 연결은 유지하되 아무 동작도 하지 않는다.
+  const handleLogoClick = useCallback((_event: React.MouseEvent) => {}, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -117,7 +75,6 @@ export function EasterEggProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     return () => {
-      if (logoClickTimerRef.current) clearTimeout(logoClickTimerRef.current);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
